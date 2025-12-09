@@ -1,33 +1,37 @@
-# Geodesic Dome Projection & FOV Clipping  
-### 지오데식 돔의 카메라 기반 투영 및 FOV 클리핑 수학적 정리
+# Geodesic Dome Projection and Field-of-View Clipping  
+## 지오데식 돔의 카메라 기반 투영 및 FOV 클리핑 수학적 정리 (Markdown 버전)
 
 ---
 
-## 📌 개요
+## 1. 서론
 
-지오데식 돔(geodesic dome)은 정이십면체 기반의 구면 분할 구조이며,  
-카메라 투영 · FOV(Field of View) 클리핑 · 2D 평면 투영 과정이 필요하다.
+지오데식 돔은 정이십면체(icosahedron)를 기반으로 한 구면 분할 구조로,  
+카메라 시점 투영, 시야각(FOV) 클리핑, 그리고 평면 투영 과정을 거쳐 표현될 수 있다.
 
-이 문서는 다음을 정리한다:
+본 문서에서는 다음을 정의한다:
 
-- 정이십면체 기반 지오데식 돔 생성  
-- 카메라 방향(azimuth, elevation, roll)으로부터의 좌표계 구성  
-- 월드 좌표 → 카메라 좌표 변환  
+- 정이십면체 기반 지오데식 구조 생성  
+- 카메라 방향(azimuth, elevation, roll)에 따른 카메라 좌표계 구성  
+- 3D → 카메라 공간 변환  
 - FOV 기반 가시성 판정  
-- 2D 정규화 평면에서의 클리핑  
-- **3D 가시 삼각형 집합과 2D 투영 삼각형 집합의 완전한 대응 관계 정리**  
+- FOV 평면 사각형 영역과의 클리핑  
+- 2D 이미지 평면으로 최종 투영  
+
+또한 **3D와 2D에서 보이는 삼각형 집합이 1:1로 대응하도록 조건을 통일한 모델**을 제시한다.
 
 ---
 
-## 🧱 1. 정이십면체 및 지오데식 분할
+## 2. 정이십면체 및 지오데식 분할
 
-### 🔹 황금비
+### 2.1 정이십면체 정점 생성
+
+황금비:
 
 $$
 \phi = \frac{1+\sqrt{5}}{2}
 $$
 
-### 🔹 정점 정규화
+정점 정규화:
 
 $$
 \hat{v}_i = \frac{v_i}{\|v_i\|}
@@ -35,21 +39,21 @@ $$
 
 ---
 
-### 🔹 면 분할 (Frequency = f)
+### 2.2 면 분할 (Frequency = \(f\))
 
-Barycentric 분할:
+한 면 \((v_0, v_1, v_2)\)에 대해 barycentric 분할:
 
 $$
-p(a,b,c) = \frac{a v_0 + b v_1 + c v_2}{a+b+c}, \qquad a+b+c=f
+p(a,b,c)=\frac{a v_0 + b v_1 + c v_2}{a+b+c}, \qquad a+b+c=f
 $$
 
 구면 정규화:
 
 $$
-\hat{p}(a,b,c) = \frac{p(a,b,c)}{\|p(a,b,c)\|}
+\hat{p}(a,b,c)=\frac{p(a,b,c)}{\|p(a,b,c)\|}
 $$
 
-전체 삼각형 수:
+면 전체 삼각형 수:
 
 $$
 N = 20 f^2
@@ -57,21 +61,23 @@ $$
 
 ---
 
-## 🎥 2. 카메라 모델
+## 3. 카메라 모델
 
-카메라는 원점에 있고 방향만 설정한다(azimuth = $\alpha$, elevation = $\beta$, roll = $\gamma$).
+카메라는 원점에 위치하며 방향(α, β, γ)을 가진다.
 
-### 🔹 Forward 벡터
+### 3.1 Forward 벡터
 
 $$
 \mathbf{f} =
-(\cos\beta\cos\alpha,\; \cos\beta\sin\alpha,\; \sin\beta)
+(\cos\beta\cos\alpha,\;
+ \cos\beta\sin\alpha,\;
+ \sin\beta)
 $$
 
-### 🔹 Right / Up 벡터
+### 3.2 Right / Up 벡터
 
 $$
-\mathbf{r} =
+\mathbf{r}=
 \frac{\mathbf{f} \times (0,0,1)}
 {\|\mathbf{f} \times (0,0,1)\|}
 $$
@@ -80,17 +86,16 @@ $$
 \mathbf{u} = \mathbf{r} \times \mathbf{f}
 $$
 
-### 🔹 Roll 적용
+### 3.3 Roll 적용
 
 $$
-\mathbf{r}' = \cos\gamma\,\mathbf{r} + \sin\gamma\,\mathbf{u}
+\begin{aligned}
+\mathbf{r}' &= \cos\gamma\, \mathbf{r} + \sin\gamma\, \mathbf{u} \\
+\mathbf{u}' &= -\sin\gamma\, \mathbf{r} + \cos\gamma\, \mathbf{u}
+\end{aligned}
 $$
 
-$$
-\mathbf{u}' = -\sin\gamma\,\mathbf{r} + \cos\gamma\,\mathbf{u}
-$$
-
-카메라 회전행렬:
+카메라 행렬:
 
 $$
 R =
@@ -103,28 +108,31 @@ $$
 
 ---
 
-## 🔄 3. 3D → 카메라 좌표 변환
+## 4. 3D → 카메라 공간 변환
 
-정점 $\mathbf{v}$에 대한 카메라 좌표:
-
+정점 
 $$
-\mathbf{v}_{cam} = R\,\mathbf{v}
-= (x_{cam},\, y_{cam},\, z_{cam})^T
+\mathbf{v}_{cam}=R\mathbf{v}=
+\begin{bmatrix}
+x_{cam}\\ y_{cam}\\ z_{cam}
+\end{bmatrix}
 $$
 
 ---
 
-## 👁️ 4. FOV 기반 가시성 판정
+## 5. FOV 기반 가시성 판정
 
-각 정점에 대해:
+각 정점 기준:
 
 $$
-\theta_x = \arctan\left(\frac{x_{cam}}{z_{cam}}\right),
-\qquad
+\theta_x = \arctan\left(\frac{x_{cam}}{z_{cam}}\right)
+$$
+
+$$
 \theta_y = \arctan\left(\frac{y_{cam}}{z_{cam}}\right)
 $$
 
-가시 조건:
+가시성 조건:
 
 $$
 |\theta_x| \le \frac{\mathrm{FOV}_x}{2}, \qquad
@@ -132,7 +140,7 @@ $$
 z_{cam} > 0
 $$
 
-삼각형 $T$의 가시성:
+삼각형 T가 보이는 조건:
 
 $$
 \exists\, v \in T : v \text{ is visible}
@@ -140,21 +148,37 @@ $$
 
 ---
 
-## 🖥️ 5. 2D 정규화 투영
+## 6. 투영 공식
 
-정규화된 2D 좌표:
+2D 정규화 투영:
+
+각 정점에 대해, 카메라 기준 수평/수직 각도(구면 좌표)를
 
 $$
-n_x = \frac{\tan(\theta_x)}{\tan(\mathrm{FOV}_x/2)},
-\qquad
-n_y = \frac{\tan(\theta_y)}{\tan(\mathrm{FOV}_y/2)}
+\theta_x = \arctan2(x_{cam}, z_{cam}), \qquad
+\theta_y = \arctan2(y_{cam}, z_{cam})
 $$
+
+라고 할 때, 전체 FOV (풀 앵글) $\mathrm{FOV}_x, \mathrm{FOV}_y$ 를 기준으로  
+정규화된 2D 좌표는 다음과 같이 정의한다:
+
+$$
+n_x = \frac{\theta_x}{\mathrm{FOV}_x/2}, \qquad
+n_y = \frac{\theta_y}{\mathrm{FOV}_y/2}
+$$
+
+- 즉, $\theta_x = \pm \mathrm{FOV}_x/2$ 인 점들은 $n_x = \pm 1$ 로 매핑되고  
+- $\theta_y = \pm \mathrm{FOV}_y/2$ 인 점들은 $n_y = \pm 1$ 로 매핑된다.
+
+따라서 $[-1,1]\times[-1,1]$ 정규화 평면은  
+“구면 FOV 콘(수평/수직 각도 $\pm \mathrm{FOV}/2$) 내부”에 정확히 대응한다.
+
 
 ---
 
-## ✂ 6. FOV 사각 클리핑
+## 7. FOV 사각형 클리핑
 
-투영된 삼각형:
+삼각형 투영 결과:
 
 $$
 T = \{(n_x^{(1)}, n_y^{(1)}),
@@ -162,13 +186,13 @@ T = \{(n_x^{(1)}, n_y^{(1)}),
       (n_x^{(3)}, n_y^{(3)})\}
 $$
 
-FOV 정규화 공간:
+FOV 정규화 사각형:
 
 $$
 C = [-1,1] \times [-1,1]
 $$
 
-클리핑:
+클리핑 수행:
 
 $$
 T' = \mathrm{clip}(T, C)
@@ -176,48 +200,52 @@ $$
 
 ---
 
-## 🔗 7. 3D ↔ 2D 삼각형 대응 관계
+## 8. 3D ↔ 2D 완전 대응 정리
 
-### 🔹 3D 가시 삼각형 집합
+### 8.1 3D 가시 삼각형 집합
 
 $$
 \mathcal{V}_{3D} =
-\lbrace T \mid
-\exists v \in T,\;
-z_{cam} > 0,\;
-|\theta_x| \le \mathrm{FOV}_x/2,\;
-|\theta_y| \le \mathrm{FOV}_y/2
-\rbrace
+\left\{
+T \mid
+\exists v\in T :
+z_{cam}>0,\;
+|\theta_x| \le \tfrac{\mathrm{FOV}_x}{2},\;
+|\theta_y| \le \tfrac{\mathrm{FOV}_y}{2}
+\right\}
 $$
 
-### 🔹 2D 표시 삼각형 집합
+### 8.2 2D 표시 집합
 
 $$
 \mathcal{V}_{2D} =
-\lbrace \mathrm{clip}(\Pi(T), C) \mid T \in \mathcal{V}_{3D} \rbrace
+\left\{
+\mathrm{clip}(\Pi(T), C)
+\mid
+T \in \mathcal{V}_{3D}
+\right\}
 $$
 
 ---
 
-## 🧩 핵심 정리
+## ✔ 핵심 정리
 
 $$
 \boxed{
-\mathcal{V}_{2D}
-\text{ 는 }
-\mathcal{V}_{3D}
-\text{ 와 정확히 동일한 삼각형 집합이다.}
+\mathcal{V}_{2D} \text{ 는 } \mathcal{V}_{3D} \text{ 와 정확히 동일한 삼각형 집합이다.}
 }
 $$
 
-- FOV 밖 영역만 잘려 나가며  
-- 삼각형의 “존재 여부”는 3D/2D에서 완전히 일치한다.
+단,  
+- FOV 바깥 영역만 잘려 나가며  
+- 삼각형의 존재 여부는 항상 일치한다.
 
 ---
 
-## ✅ 결론
+## 9. 결론
 
-이 모델은 지오데식 돔을 카메라 시점에서 정확하게 투영하는 데 필요한  
-**수학적·기하학적 규칙을 통합 정리**한다.  
+본 모델은 지오데식 돔의 카메라 투영 과정 전체를  
+일관된 수학적 구조 하에서 정의하고,  
+3D ↔ 2D 가시성 일치를 보장하는 견고한 기반을 제공한다.
 
-그래픽스, 돔 프로젝션, 파노라마 렌더링 등 다양한 분야에서 적용 가능하다.
+---
