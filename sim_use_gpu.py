@@ -107,9 +107,10 @@ def subdivide_icosahedron(freq=5):
     return ico_verts, ico_faces, np.array(small_triangles), np.array(parent_face_idx, dtype=int)
 
 
-# ========= 2. 카메라/클리핑 =========
+# ========= 2. 카메라/클리핑 (구면 FOV) =========
 
 def camera_basis_from_angles(az_deg, el_deg, roll_deg):
+    """az, el, roll 로부터 right, up, fwd (모두 단위벡터) 계산"""
     az = math.radians(az_deg)
     el = math.radians(el_deg)
     roll = math.radians(roll_deg)
@@ -205,38 +206,59 @@ def clip_polygon_to_rect(poly, x_min, x_max, y_min, y_max):
     return poly
 
 
-def compute_visible_triangles_and_2d(tris_world, parent_idx,
-                                     right, up, fwd,
-                                     fov_x_deg, fov_y_deg):
-    R_cam = np.stack([right, up, fwd], axis=0)
-    cam = tris_world.reshape(-1, 3) @ R_cam.T
-    cam = cam.reshape(tris_world.shape)
+def compute_visible_triangles_and_2d(
+    tris_world,
+    parent_idx,
+    right,
+    up,
+    fwd,
+    fov_x_deg,
+    fov_y_deg,
+):
+    """
+    구면 FOV 기준으로 잘라내고, 2D 정규화 좌표(-1~1)로 투영.
 
-    M = tris_world.shape[0]
+    fov_x_deg, fov_y_deg  둘 다 "전체 각도" (예: 90이면 ±45°)
+    """
+
+    # --- 1. 카메라 기준 좌표계로 변환 (right, up, fwd 기준) ---
+    R_cam = np.stack([right, up, fwd], axis=0)  # 3x3
+    cam = tris_world.reshape(-1, 3) @ R_cam.T   # (N*3, 3)
+    cam = cam.reshape(tris_world.shape)         # (N,3,3)
+
     x = cam[..., 0]
     y = cam[..., 1]
     z = cam[..., 2]
 
-    eps = 1e-6
-    in_front = z > eps
+    # --- 2. 구면 각도 (yaw, pitch) ---
+    # yaw = arctan2(x, z)   → 수평각
+    # pitch = arctan2(y, z) → 수직각
+    yaw = np.arctan2(x, z)   # radians
+    pitch = np.arctan2(y, z) # radians
 
     fov_x = math.radians(fov_x_deg)
     fov_y = math.radians(fov_y_deg)
 
-    ang_x = np.arctan2(x, z)
-    ang_y = np.arctan2(y, z)
+    half_fx = fov_x / 2.0
+    half_fy = fov_y / 2.0
 
-    in_fov_x = np.abs(ang_x) <= (fov_x / 2.0)
-    in_fov_y = np.abs(ang_y) <= (fov_y / 2.0)
+    in_fov_x = np.abs(yaw) <= half_fx
+    in_fov_y = np.abs(pitch) <= half_fy
+
+    eps = 1e-6
+    in_front = z > eps  # fwd 반대편은 제외
 
     tri_visible_mask = np.any(in_front & in_fov_x & in_fov_y, axis=1)
 
-    nx_all = np.tan(ang_x) / math.tan(fov_x / 2.0)
-    ny_all = np.tan(ang_y) / math.tan(fov_y / 2.0)
+    # --- 3. 2D 정규화: yaw/pitch를 -1~1로 매핑 ---
+    #   yaw = ±half_fx  → nx = ±1
+    #   pitch = ±half_fy → ny = ±1
+    nx_all = yaw / half_fx
+    ny_all = pitch / half_fy
 
     polys_2d = []
     poly_parent = []
-    for i in range(M):
+    for i in range(tris_world.shape[0]):
         if not tri_visible_mask[i]:
             continue
         poly = np.stack([nx_all[i], ny_all[i]], axis=1)
@@ -251,6 +273,7 @@ def compute_visible_triangles_and_2d(tris_world, parent_idx,
 
 
 # ========= 3. 2D 숫자 라벨 (7-seg) =========
+# (이 부분은 기존 코드 그대로라 생략 없이 둠)
 
 SEGMENTS = {
     0: [0, 1, 2, 3, 4, 5],
@@ -335,8 +358,10 @@ class CameraParams:
     az: float = 30.0
     el: float = 20.0
     roll: float = 0.0
-    fov_y: float = 60.0
-    fov_x: float = 80.0   # 루프에서 aspect로 업데이트
+    # 이 둘은 "구면 FOV" 파라미터이자,
+    # 3D 투영에서도 그대로 사용되는 세로 FOV(cam.fov_y)에 반영됨
+    fov_y: float = 60.0   # 전체 수직 시야각 (예: 60 → ±30°)
+    fov_x: float = 90.0   # 전체 수평 시야각 (예: 90 → ±45°)
 
 
 def create_window(width=1280, height=720, title="Geodesic Dome OpenGL"):
@@ -356,34 +381,26 @@ def create_window(width=1280, height=720, title="Geodesic Dome OpenGL"):
 # ========= 5. 메인 루프 =========
 
 def run():
-    freq = 20
+    freq = 200
 
     ico_verts, ico_faces, small_tris, parent_idx = subdivide_icosahedron(freq)
 
     tri_count = small_tris.shape[0]
     tri_vertices_world = small_tris.reshape(-1, 3).astype("f4")
 
-    # 면별 기본 색 (3D용)
     base_colors = np.zeros((tri_count * 3, 4), dtype="f4")
     for i, p in enumerate(parent_idx):
         r, g, b = PALETTE[p % len(PALETTE)]
-        base_colors[3*i : 3*i+3, :] = (r, g, b, 0.25)
+        base_colors[3*i:3*i+3, :] = (r, g, b, 0.25)
 
     win_w, win_h = 1280, 720
-    window = create_window(win_w, win_h)
+    window = create_window(win_w+(win_w//2), win_h)
     ctx = moderngl.create_context()
     prog = ctx.program(vertex_shader=VERT_SHADER_SRC, fragment_shader=FRAG_SHADER_SRC)
 
-    # 알파 블렌딩 (반투명 돔용)
     ctx.enable(moderngl.BLEND)
-    # moderngl.BLEND_DEFAULT 가 없는 버전이 있어서 직접 지정
-    ctx.blend_func = (
-        moderngl.SRC_ALPHA,
-        moderngl.ONE_MINUS_SRC_ALPHA,
-    )
+    ctx.blend_func = (moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA)
 
-
-    # 전체 돔 VAO
     vbo_pos_all = ctx.buffer(tri_vertices_world.tobytes())
     vbo_col_all = ctx.buffer(base_colors.tobytes())
     vao_all = ctx.vertex_array(
@@ -391,7 +408,6 @@ def run():
         [(vbo_pos_all, "3f", "in_pos"), (vbo_col_all, "4f", "in_color")]
     )
 
-    # 3D FOV 하이라이트용
     highlight_vbo_pos = ctx.buffer(reserve=tri_vertices_world.nbytes)
     highlight_vbo_col = ctx.buffer(reserve=base_colors.nbytes)
     highlight_vao = ctx.vertex_array(
@@ -399,12 +415,30 @@ def run():
         [(highlight_vbo_pos, "3f", "in_pos"), (highlight_vbo_col, "4f", "in_color")]
     )
 
-    # 3D FOV 와이어프레임용
     visible_line_vbo_pos = ctx.buffer(reserve=tri_vertices_world.nbytes)
     visible_line_vbo_col = ctx.buffer(reserve=tri_vertices_world.nbytes)
     visible_line_vao = ctx.vertex_array(
         prog,
         [(visible_line_vbo_pos, "3f", "in_pos"), (visible_line_vbo_col, "4f", "in_color")]
+    )
+
+    # 축 그리기 (옵션)
+    axis_len = 1.5
+    axis_vertices = np.array([
+        [0.0, 0.0, 0.0], [axis_len, 0.0, 0.0],
+        [0.0, 0.0, 0.0], [0.0, axis_len, 0.0],
+        [0.0, 0.0, 0.0], [0.0, 0.0, axis_len],
+    ], dtype="f4")
+    axis_colors = np.array([
+        [1.0, 0.0, 0.0, 1.0], [1.0, 0.0, 0.0, 1.0],
+        [0.0, 1.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0],
+        [0.0, 0.0, 1.0, 1.0], [0.0, 0.0, 1.0, 1.0],
+    ], dtype="f4")
+    axis_vbo_pos = ctx.buffer(axis_vertices.tobytes())
+    axis_vbo_col = ctx.buffer(axis_colors.tobytes())
+    axis_vao = ctx.vertex_array(
+        prog,
+        [(axis_vbo_pos, "3f", "in_pos"), (axis_vbo_col, "4f", "in_color")]
     )
 
     cam = CameraParams()
@@ -413,7 +447,9 @@ def run():
 
     print("[키 조작]")
     print("←/→ : azimuth, ↑/↓ : elevation, Q/E : roll")
-    print("Z/X : FOV_y, ESC : 종료")
+    print("Z/X : fov_x 감소/증가 (구면 기준)")
+    print("A/S : fov_y 감소/증가 (구면 기준)")
+    print("ESC : 종료")
 
     while not glfw.window_should_close(window):
         glfw.poll_events()
@@ -433,31 +469,33 @@ def run():
             cam.roll -= step_ang
         if glfw.get_key(window, glfw.KEY_E) == glfw.PRESS:
             cam.roll += step_ang
+
+        # fov_x, fov_y 둘 다 "구면 FOV"로 직접 조절
         if glfw.get_key(window, glfw.KEY_Z) == glfw.PRESS:
-            cam.fov_y = max(10.0, cam.fov_y - step_fov)
+            cam.fov_x = max(10.0, cam.fov_x - step_fov)
         if glfw.get_key(window, glfw.KEY_X) == glfw.PRESS:
+            cam.fov_x = min(170.0, cam.fov_x + step_fov)
+        if glfw.get_key(window, glfw.KEY_A) == glfw.PRESS:
+            cam.fov_y = max(10.0, cam.fov_y - step_fov)
+        if glfw.get_key(window, glfw.KEY_S) == glfw.PRESS:
             cam.fov_y = min(170.0, cam.fov_y + step_fov)
-        if glfw.get_key(window, glfw.KEY_ESCAPE) == glfw.PRESS:
-            break
 
-        aspect = (win_w / 2) / win_h
-        cam.fov_x = math.degrees(
-            2.0 * math.atan(math.tan(math.radians(cam.fov_y) / 2.0) * aspect)
-        )
+        aspect = (win_w / 2) / win_h  # 왼쪽 3D 뷰포트 기준
 
-        # 2D용 중심 카메라
+        # === 카메라 방향 (구면 기준) ===
         right, up, fwd = camera_basis_from_angles(cam.az, cam.el, cam.roll)
 
-        # FOV/2D 계산
+        # === 구면 FOV 기준으로 삼각형 선택 + 2D 투영 ===
         tri_mask, polys_2d, poly_parent = compute_visible_triangles_and_2d(
-            small_tris, parent_idx, right, up, fwd, cam.fov_x, cam.fov_y
+            small_tris, parent_idx,
+            right, up, fwd,
+            cam.fov_x, cam.fov_y
         )
         visible_tris_world = small_tris[tri_mask]
         visible_parents = parent_idx[tri_mask]
 
-        # 3D 하이라이트 & 와이어프레임 버퍼 채우기
+        # 3D 하이라이트/와이어용 데이터 업데이트
         if visible_tris_world.size > 0:
-            # 채우기용 (살짝 확장)
             vis_scaled = visible_tris_world * 1.002
             vis_vertices = vis_scaled.reshape(-1, 3).astype("f4")
             vis_colors = np.zeros((vis_vertices.shape[0], 4), dtype="f4")
@@ -469,7 +507,6 @@ def run():
             highlight_vbo_col.orphan(size=vis_colors.nbytes)
             highlight_vbo_col.write(vis_colors.tobytes())
 
-            # 와이어프레임용 (조금 더 바깥으로 확장해서 z-fighting 방지)
             offset = 1.003
             line_segs = []
             for tri in visible_tris_world:
@@ -491,13 +528,15 @@ def run():
         ctx.clear(0.05, 0.05, 0.08, 1.0)
 
         cam_dist = 2.5
-        eye = cam_dist * fwd   # 2D 카메라가 보는 방향 쪽 바깥
+        eye = cam_dist * fwd
         target = np.array([0.0, 0.0, 0.0], dtype="f4")
         world_up = np.array([0.0, 0.0, 1.0], dtype="f4")
         if abs(np.dot(fwd, world_up)) > 0.95:
             world_up = np.array([0.0, 1.0, 0.0], dtype="f4")
 
         view_ext = Matrix44.look_at(eye, target, world_up, dtype="f4")
+
+        # 3D 카메라 세로 FOV = cam.fov_y (그대로 사용)
         proj = Matrix44.perspective_projection(cam.fov_y, aspect, near, far)
         mvp3d = proj * view_ext
         prog["mvp"].write(mvp3d.astype("f4").tobytes())
@@ -508,9 +547,11 @@ def run():
             highlight_vao.render(mode=moderngl.TRIANGLES)
             visible_line_vao.render(mode=moderngl.LINES)
 
+        axis_vao.render(mode=moderngl.LINES)
+
         # ===== 2D (오른쪽) =====
         ctx.disable(moderngl.DEPTH_TEST)
-        ctx.viewport = (win_w // 2, 0, win_w // 2, win_h)
+        ctx.viewport = (win_w // 2, 0, win_w, win_h)
         prog["mvp"].write(ortho_2d.astype("f4").tobytes())
 
         # (1) 패치 채우기
