@@ -389,12 +389,5 @@ if __name__ == "__main__":
 
     ico_verts, ico_faces, small_tris, parent_idx = subdivide_icosahedron(freq)
 
-    # 1) 정적인 뷰 + PNG 저장
-    render_and_save(ico_verts, ico_faces, small_tris, parent_idx,
-                    az_deg=30, el_deg=20, roll_deg=10,
-                    fov_x_deg=80, fov_y_deg=60,
-                    img_w=1920, img_h=1080,
-                    filename="geodesic_view.png")
-
-    # 2) 슬라이더로 실시간 카메라 조절하려면 아래를 주석 해제
+    # 슬라이더로 실시간 카메라 조절
     interactive_view(freq=freq)
