@@ -629,7 +629,7 @@ def interactive_view(nside=8, boundary_step=2):
 
     # initial camera params (degrees for sliders)
     init_az_deg = 35.0
-    init_el_deg = 15.0
+    init_el_deg = 0.0
     init_roll_deg = 0.0
     init_fovx_deg = 90.0
     init_fovy_deg = 60.0

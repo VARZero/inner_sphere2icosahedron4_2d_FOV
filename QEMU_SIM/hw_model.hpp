@@ -21,7 +21,7 @@ METHODS:
     public:
         Icosahedron();
         ~Icosahedron();
-        IcosaFaceTri* getFace4Angle(unsigned char normAngle);
+        IcosaFaceTri* getFaceAngle(unsigned char normAngle);
 }
 
 class IcosaFaceTri{
