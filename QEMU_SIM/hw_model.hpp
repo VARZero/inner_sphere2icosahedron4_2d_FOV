@@ -1,6 +1,18 @@
 #ifndef __ICOSAHEDRON_FACES_H__
 #define __ICOSAHEDRON_FACES_H__
 
+enum odd_even {
+    ODD = 0,
+    EVEN = 1
+} ODD_EVEN;
+
+enum ele_area {
+    BOTTOM = -2,
+    MIDDLE_BOTTOM = -1,
+    MIDDLE_TOP = 0,
+    TOP = 1
+} ELE_AREA;
+
 class IcosaFaceTri;
 
 class Icosahedron{
@@ -13,7 +25,7 @@ MEMBER VARIABLES:
 METHODS:
     Icosahedron:        constructor
     ~Icosahedron:       destructor
-    getFace4Angle:      returns face at cardinal directions
+    getFace4Angle:      returns face at cardinal directions(azimuth, elevation, angle)
 */
     private:
         IcosaFaceTri* faces[20];
@@ -21,7 +33,11 @@ METHODS:
     public:
         Icosahedron();
         ~Icosahedron();
-        IcosaFaceTri* getFaceAngle(unsigned char normAngle);
+        IcosaFaceTri** getFaceAngle(
+            unsigned char *num_of_tris,
+            unsigned char azimuth, unsigned char elevation, 
+            unsigned char pov_x, unsigned char pov_y, unsigned char roll
+        );
 }
 
 class IcosaFaceTri{
