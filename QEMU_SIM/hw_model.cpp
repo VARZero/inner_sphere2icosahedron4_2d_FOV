@@ -27,7 +27,7 @@ Icosahedron::~Icosahedron(){
 
 IcosaFaceTri** Icosahedron::getFaceAngle(
     unsigned char *num_of_tris,
-    unsigned char azimuth, char elevation, 
+    unsigned char azimuth; char elevation, 
     unsigned char pov_x, unsigned char pov_y, unsigned char roll
 ){
     // Get start Position
@@ -66,4 +66,13 @@ IcosaFaceTri** Icosahedron::getFaceAngle(
 
     // Get POV triangles
     IcosaFaceTri** tri_pov;
+    unsigned char firstAzi, char firstEle;
+    unsigned char triAzi, char triEle;
+    
+
+}
+
+IcosaFaceTri::IcosaFaceTri(unsigned char faceIdx, bool triangleType){
+    this->faceIdx = faceIdx;
+    this->triangleType = triangleType;
 }
