@@ -27,24 +27,22 @@ Icosahedron::~Icosahedron(){
 
 IcosaFaceTri** Icosahedron::getFaceAngle(
     unsigned char *num_of_tris,
-    unsigned char azimuth; char elevation, 
+    unsigned char azimuth, char elevation, 
     unsigned char pov_x, unsigned char pov_y, unsigned char roll
 ){
     // Get start Position
     char tri;
     char tri_start = (azimuth / 72);
     char azi_norm = (azimuth / 36); 
-    
-    ODD_EVEN oe;
 
-    bool azi_odd_even = (azi_norm / 18 == 0)? oe.EVEN : oe.ODD;
+    enum odd_even azi_odd_even = (azi_norm / 18 == 0)? EVEN : ODD;
     
-    ELE_AREA ele_area = (elevation < -30)? BOTTOM :
+    enum ele_area ea = (elevation < -30)? BOTTOM :
                         (elevation < 0)? MIDDLE_BOTTOM :
                         (elevation < 30)? MIDDLE_TOP :
                         TOP;
     
-    switch(ele_area){
+    switch(ea){
         case BOTTOM:
             tri = tri_start + 1;
         break;
@@ -52,10 +50,10 @@ IcosaFaceTri** Icosahedron::getFaceAngle(
             tri = tri_start;
         break;
         case MIDDLE_TOP:
-            if (azi_odd_even == oe.EVEN){
+            if (azi_odd_even == EVEN){
                 tri = tri_start - 10;
             }
-            else if (azi_odd_even == oe.ODD){
+            else if (azi_odd_even == ODD){
                 tri = tri_start + 10;
             }
         break;
@@ -66,13 +64,13 @@ IcosaFaceTri** Icosahedron::getFaceAngle(
 
     // Get POV triangles
     IcosaFaceTri** tri_pov;
-    unsigned char firstAzi, char firstEle;
-    unsigned char triAzi, char triEle;
+    unsigned char firstAzi; char firstEle;
+    unsigned char triAzi; char triEle;
     
 
 }
 
 IcosaFaceTri::IcosaFaceTri(unsigned char faceIdx, bool triangleType){
-    this->faceIdx = faceIdx;
-    this->triangleType = triangleType;
+    faceIdx = faceIdx;
+    triangleType = triangleType;
 }
