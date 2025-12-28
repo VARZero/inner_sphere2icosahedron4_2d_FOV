@@ -1,11 +1,21 @@
+/*  0 <= n <= 4
+         /\    /\    /\    /\    /\
+        /11\  /13\  /15\  /17\  /19\     (10+2n+1) false
+      /\----/\----/\----/\----/\----/
+     / 0\10/ 2\12/ 4\14/ 6\16/ 8\18/     (2n or 10+2n) true / false
+    /----\/----\/----\/----\/----\/
+     \ 1/  \ 3/  \ 5/  \ 7/  \ 9/        (2n+1) true
+      \/    \/    \/    \/    \/
+*/
+
 #ifndef __ICOSAHEDRON_FACES_H__
 #define __ICOSAHEDRON_FACES_H__
 
 #define NUM_OF_FACE 20
 
 enum odd_even {
-    ODD = 0,
-    EVEN = 1
+    EVEN = 0,
+    ODD = 1
 };
 
 enum ele_area {
@@ -35,8 +45,11 @@ METHODS:
     public:
         Icosahedron();
         ~Icosahedron();
-        IcosaFaceTri** getFaceAngle(
+        void setFaceAttr();
+        IcosaFaceTri* getStartFace(unsigned char azimuth, char elevation);
+        IcosaFaceTri** getPovFaces(
             unsigned char *num_of_tris,
+            IcosaFaceTri* startFace,
             unsigned char azimuth, char elevation, 
             unsigned char pov_x, unsigned char pov_y, unsigned char roll
         );
@@ -75,13 +88,13 @@ METHODS:
     public:
         IcosaFaceTri(unsigned char faceId, bool triType);
         ~IcosaFaceTri();
+        void setCloserFaces(IcosaFaceTri* ele, IcosaFaceTri* left, IcosaFaceTri* right);
         unsigned char getFaceId();
         bool getTriType();
         IcosaFaceTri* getElevateFace();
         IcosaFaceTri* getLeftFace();
         IcosaFaceTri* getRightFace();
-        IcosaFaceTri* getFaceFromAngle(unsigned char angle);
-        void setFaces(IcosaFaceTri *elevateFace, IcosaFaceTri *leftFace, IcosaFaceTri *rightFace);
+        IcosaFaceTri* getFaceFromAngle(unsigned short angle);
 };
 
 #endif /* __ICOSAHEDRON_FACES_H__ */
