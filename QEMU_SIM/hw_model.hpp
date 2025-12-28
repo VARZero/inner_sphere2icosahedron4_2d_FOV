@@ -13,6 +13,21 @@
 
 #define NUM_OF_FACE 20
 
+#define ANGLE_0 0
+#define ANGLE_30 30
+#define ANGLE_60 60
+#define ANGLE_90 90
+#define ANGLE_120 120
+#define ANGLE_150 150
+#define ANGLE_180 180
+#define ANGLE_210 210
+#define ANGLE_240 240
+#define ANGLE_270 270
+#define ANGLE_300 300
+#define ANGLE_330 330
+#define ANGLE_MAX 360
+
+
 enum odd_even {
     EVEN = 0,
     ODD = 1

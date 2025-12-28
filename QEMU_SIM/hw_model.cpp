@@ -118,19 +118,29 @@ IcosaFaceTri* Icosahedron::getStartFace(
         break;
     }
 
-    // - todo: tri determine out of range
+    // tri determine when out of range
+    if (tri >= 20){ tri -= 20; }
+    else if (tri < 20) {} // Nothing
+    else {} // Nothing
+
+    if (tri < 0){ tri += 20; }
+    else if (tri >= 0) {} // Nothing
+    else {} // Nothing
 
     return faces[tri];
 }
 
 IcosaFaceTri** getPovFaces(
-            unsigned char *num_of_tris,
+            unsigned char *num_of_tris, IcosaFaceTri* startFace,
             unsigned char azimuth, char elevation, 
             unsigned char pov_x, unsigned char pov_y, unsigned char roll
         ){
     // Get POV triangles
     IcosaFaceTri** tri_pov;
     unsigned char firstAzi; char firstEle;
+
+    
+
     unsigned char triAzi; char triEle;
     
     // - todo
@@ -152,5 +162,19 @@ IcosaFaceTri* IcosaFaceTri::getLeftFace() { return leftFace; }
 IcosaFaceTri* IcosaFaceTri::getRightFace() { return rightFace; }
 
 IcosaFaceTri* IcosaFaceTri::getFaceFromAngle(unsigned short angle) {
-
+    // start direction is noontime and clockwise
+    if (!triType){ // Shape: "/\"
+        if (angle >= ANGLE_0 && angle < ANGLE_120) return rightFace;
+        else if (angle >= ANGLE_120 && angle < ANGLE_240) return elevateFace;
+        else if (angle >= ANGLE_240 && angle < ANGLE_0) return leftFace;
+        else {} // Nothing
+    }
+    else if (triType){ // Shape: "\/"
+        if (angle >= ANGLE_60 && angle < ANGLE_180) return rightFace;
+        else if (angle >= ANGLE_180 && angle < ANGLE_300) return leftFace;
+        else if (angle >= ANGLE_300 && angle < ANGLE_MAX) return elevateFace;
+        else if (angle >= ANGLE_0 && angle < ANGLE_60) return elevateFace;
+        else {} // Nothing
+    }
+    else {} // Nothing
 }
