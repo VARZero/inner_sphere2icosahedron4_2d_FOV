@@ -6,6 +6,9 @@
     /----\/----\/----\/----\/----\/
      \ 1/  \ 3/  \ 5/  \ 7/  \ 9/        (2n+1) true
       \/    \/    \/    \/    \/
+    
+    0's center is Azimuth (clockwise) = 0 degree, 
+                  Elevation (up+ down-) = 0 degrees
 */
 
 #ifndef __ICOSAHEDRON_FACES_H__
@@ -61,12 +64,12 @@ METHODS:
         Icosahedron();
         ~Icosahedron();
         void setFaceAttr();
-        IcosaFaceTri* getStartFace(unsigned char azimuth, char elevation);
+        IcosaFaceTri* getStartFace(unsigned short azimuth, char elevation);
         IcosaFaceTri** getPovFaces(
             unsigned char *num_of_tris,
             IcosaFaceTri* startFace,
-            unsigned char azimuth, char elevation, 
-            unsigned char pov_x, unsigned char pov_y, unsigned char roll
+            unsigned short azimuth, char elevation, 
+            unsigned short povX, unsigned short povY, unsigned short roll
         );
 };
 

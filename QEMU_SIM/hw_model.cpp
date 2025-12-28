@@ -89,7 +89,7 @@ void Icosahedron::setFaceAttr(){
 }
 
 IcosaFaceTri* Icosahedron::getStartFace(
-        unsigned char azimuth, char elevation) {
+        unsigned short azimuth, char elevation) {
     // Get start Position
     char tri;
     char tri_start = (azimuth / 72);
@@ -136,18 +136,44 @@ IcosaFaceTri* Icosahedron::getStartFace(
 
 IcosaFaceTri** getPovFaces(
             unsigned char *num_of_tris, IcosaFaceTri* startFace,
-            unsigned char azimuth, char elevation, 
-            unsigned char pov_x, unsigned char pov_y, unsigned char roll
+            unsigned short azimuth, char elevation, 
+            unsigned short povX, unsigned short povY, unsigned short roll
         ){
     // Get POV triangles
     IcosaFaceTri** tri_pov;
-    unsigned char firstAzi; char firstEle;
-        // Get center tri azimuth, elevation
-    
+    unsigned char centerAzi; char centerEle;
 
-    unsigned char triAzi; char triEle;
-    
-    // - todo
+    // Get center tri azimuth, elevation
+    unsigned char centerTriNum = startFace->getFaceId();
+    if (centerTriNum % 2 == ODD){
+        centerEle = (centerTriNum < 10)? -30 : 30;
+        centerTriNum = (centerTriNum < 10)? (centerTriNum - 1) : (centerTriNum - 10);
+    }
+    else if (centerTriNum % 2 == EVEN){
+        centerEle = 0;
+        centerTriNum = (centerTriNum < 10)? (centerTriNum * 2) : (centerTriNum - 9);
+    }
+    else {} // Nothing
+    centerAzi = centerTriNum * 36;
+
+    // Get other triangles on display
+    unsigned short targetAzi; char targetEle;
+        /*. Get Left-Top triangle
+             1. Up->Left (Caching passed triangles, but select MOST LEFT-TOP triangle)
+             2. Left->Right
+             3. Get under triangles and repeat 2~3
+             4. When getting all triangles, end.
+        */
+    IcosaFaceTri* targetTri = startFace;
+    short halfPovX = povX >> 1;
+    short halfPovY = povY >> 1;
+    while(halfPovX > 0){
+        while(halfPovY > 0){
+            targetTri = targetTri->getFaceFromAngle(roll);
+            halfPovY -= 60;
+        }
+        // - todo: roll의 -90도로 이동
+    }
 }
 
 IcosaFaceTri::IcosaFaceTri(unsigned char faceIdx, bool triangleType){
@@ -182,3 +208,4 @@ IcosaFaceTri* IcosaFaceTri::getFaceFromAngle(unsigned short angle) {
     }
     else {} // Nothing
 }
+
