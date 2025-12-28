@@ -43,15 +43,19 @@ void Icosahedron::setFaceAttr(){
             ele = myFaceId + 1;
             if (myFaceId >= 10){
                 left = myFaceId-10;
-                right = myFaceId+2;
+
+                if (myFaceId != 18) right = myFaceId+2;
+                else if (myFaceId == 18) right = 0;
+                else {} // Nothing
             }
             else if (myFaceId < 10){
-                left = myFaceId-8;
+                if (myFaceId != 0) left = myFaceId-8;
+                else if (myFaceId == 0) left = 18;
+                else // Nothing
+
                 right = myFaceId+10;
             }
             else {} // Nothing
-
-            // l/r range
         }
         else if (myFaceId % 2 == ODD){
             // Upper or Under
@@ -138,7 +142,7 @@ IcosaFaceTri** getPovFaces(
     // Get POV triangles
     IcosaFaceTri** tri_pov;
     unsigned char firstAzi; char firstEle;
-
+        // Get center tri azimuth, elevation
     
 
     unsigned char triAzi; char triEle;
