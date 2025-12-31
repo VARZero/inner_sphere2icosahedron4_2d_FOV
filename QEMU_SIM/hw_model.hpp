@@ -43,6 +43,17 @@ enum ele_area {
     TOP = 1
 };
 
+enum tend {
+    LEFTSIDE = 0,
+    RIGHTSIDE = 1
+};
+
+enum direction {
+    LEFT = -1,
+    ELE = 0,
+    RIGHT = 1
+};
+
 class IcosaFaceTri;
 
 class Icosahedron{
@@ -112,7 +123,7 @@ METHODS:
         IcosaFaceTri* getElevateFace();
         IcosaFaceTri* getLeftFace();
         IcosaFaceTri* getRightFace();
-        IcosaFaceTri* getFaceFromAngle(unsigned short angle);
+        IcosaFaceTri* getFaceFromAngle(unsigned short angle, bool selTopBot, char* dir);
 };
 
 #endif /* __ICOSAHEDRON_FACES_H__ */

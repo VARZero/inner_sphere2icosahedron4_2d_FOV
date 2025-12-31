@@ -146,7 +146,7 @@ IcosaFaceTri** getPovFaces(
     // Get center tri azimuth, elevation
     unsigned char centerTriNum = startFace->getFaceId();
     if (centerTriNum % 2 == ODD){
-        centerEle = (centerTriNum < 10)? -30 : 30;
+        centerEle = (centerTriNum < 10)? -1 * ANGLE_30 : ANGLE_30;
         centerTriNum = (centerTriNum < 10)? (centerTriNum - 1) : (centerTriNum - 10);
     }
     else if (centerTriNum % 2 == EVEN){
@@ -165,14 +165,18 @@ IcosaFaceTri** getPovFaces(
              4. When getting all triangles, end.
         */
     IcosaFaceTri* targetTri = startFace;
+
+    // Get triangles what is located on upper screen sections
     short halfPovX = povX >> 1;
     short halfPovY = povY >> 1;
+    while(halfPovY > 0){
+        targetTri = targetTri->getFaceFromAngle(roll, LEFTSIDE);
+        
+    }
+    roll = (roll < ANGLE_90)? roll+ANGLE_270 : roll-ANGLE_90;
     while(halfPovX > 0){
-        while(halfPovY > 0){
-            targetTri = targetTri->getFaceFromAngle(roll);
-            halfPovY -= 60;
-        }
-        // - todo: roll의 -90도로 이동
+        targetTri = targetTri->getFaceFromAngle(roll, RIGHTSIDE);
+        
     }
 }
 
@@ -191,19 +195,40 @@ IcosaFaceTri* IcosaFaceTri::getElevateFace() { return elevateFace; }
 IcosaFaceTri* IcosaFaceTri::getLeftFace() { return leftFace; }
 IcosaFaceTri* IcosaFaceTri::getRightFace() { return rightFace; }
 
-IcosaFaceTri* IcosaFaceTri::getFaceFromAngle(unsigned short angle) {
+IcosaFaceTri* IcosaFaceTri::getFaceFromAngle(unsigned short angle, bool selTendLR, char* dir) {
     // start direction is noontime and clockwise
+    // selTendLR false: leftside true: rightside
+    unsigned short angleArea;
+
     if (!triType){ // Shape: "/\"
-        if (angle >= ANGLE_0 && angle < ANGLE_120) return rightFace;
-        else if (angle >= ANGLE_120 && angle < ANGLE_240) return elevateFace;
-        else if (angle >= ANGLE_240 && angle < ANGLE_0) return leftFace;
+        angleArea = angle % (ANGLE_MAX/3);
+        if (angleArea >= ANGLE_0 && angleArea < ANGLE_30) *dir = LEFT;
+        else if (angleArea >= ANGLE_30 && angleArea <= ANGLE_90) *dir = ELE;
+        else if (angleArea > ANGLE_90 && angleArea <= ANGLE_120) *dir = RIGHT;
+        else {} // Nothing
+
+        if (angle > ANGLE_0 && angle < ANGLE_120) return rightFace;
+        else if (angle == ANGLE_120) return (!selTendLR)? rightFace : elevateFace;
+        else if (angle > ANGLE_120 && angle < ANGLE_240) return elevateFace;
+        else if (angle == ANGLE_240) return (!selTendLR)? elevateFace : leftFace;
+        else if (angle > ANGLE_240 && angle < ANGLE_0) return leftFace;
+        else if (angle == ANGLE_0) return (!selTendLR)? leftFace : rightFace;
         else {} // Nothing
     }
     else if (triType){ // Shape: "\/"
-        if (angle >= ANGLE_60 && angle < ANGLE_180) return rightFace;
-        else if (angle >= ANGLE_180 && angle < ANGLE_300) return leftFace;
-        else if (angle >= ANGLE_300 && angle < ANGLE_MAX) return elevateFace;
+        angleArea = (angle + ANGLE_60) % (ANGLE_MAX/3);
+        if (angleArea >= ANGLE_0 && angleArea < ANGLE_30) *dir = LEFT;
+        else if (angleArea >= ANGLE_30 && angleArea <= ANGLE_90) *dir = ELE;
+        else if (angleArea > ANGLE_90 && angleArea <= ANGLE_120) *dir = RIGHT;
+        else {} // Nothing
+
+        if (angle > ANGLE_60 && angle < ANGLE_180) return rightFace;
+        else if (angle == ANGLE_180) return (!selTendLR)? rightFace : leftFace;
+        else if (angle > ANGLE_180 && angle < ANGLE_300) return leftFace;
+        else if (angle == ANGLE_300) return (!selTendLR)? leftFace : elevateFace;
+        else if (angle > ANGLE_300 && angle < ANGLE_MAX) return elevateFace;
         else if (angle >= ANGLE_0 && angle < ANGLE_60) return elevateFace;
+        else if (angle == ANGLE_60) return (!selTendLR)? elevateFace : rightFace;
         else {} // Nothing
     }
     else {} // Nothing
