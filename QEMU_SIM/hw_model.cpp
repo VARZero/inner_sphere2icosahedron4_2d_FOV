@@ -166,18 +166,28 @@ IcosaFaceTri** getPovFaces(
         */
     IcosaFaceTri* targetTri = startFace;
 
-    // Get triangles what is located on upper screen sections
+    // Get triangles what is located on upper and left screen sections
+    char relDire;
     short halfPovX = povX >> 1;
     short halfPovY = povY >> 1;
     while(halfPovY > 0){
-        targetTri = targetTri->getFaceFromAngle(roll, LEFTSIDE);
+        targetTri = targetTri->getFaceFromAngle(roll, LEFTSIDE, &relDire);
         
+        if (relDire == ELE) { halfPovY -= 60; halfPovX -= 0; }
+        else if (relDire != ELE) { halfPovY -= 0; halfPovX -= 36; }
+        else {} // Nothing
     }
     roll = (roll < ANGLE_90)? roll+ANGLE_270 : roll-ANGLE_90;
     while(halfPovX > 0){
-        targetTri = targetTri->getFaceFromAngle(roll, RIGHTSIDE);
+        targetTri = targetTri->getFaceFromAngle(roll, RIGHTSIDE, &relDire);
         
+        if (relDire == ELE) { halfPovX -= 60; halfPovY -= 0; }
+        else if (relDire != ELE) { halfPovX -= 0; halfPovY -= 36; }
+        else {} // Nothing
     }
+
+    // Get all triangles
+    
 }
 
 IcosaFaceTri::IcosaFaceTri(unsigned char faceIdx, bool triangleType){
