@@ -168,21 +168,21 @@ IcosaFaceTri** getPovFaces(
 
     // Get triangles what is located on upper and left screen sections
     char relDire;
-    short halfPovX = povX >> 1;
-    short halfPovY = povY >> 1;
-    while(halfPovY > 0){
+    short getStartPovX = azimuth - povX;
+    short getStartPovY = elevation - povY;
+    while(getStartPovY > 0){
         targetTri = targetTri->getFaceFromAngle(roll, LEFTSIDE, &relDire);
         
-        if (relDire == ELE) { halfPovY -= 60; halfPovX -= 0; }
-        else if (relDire != ELE) { halfPovY -= 0; halfPovX -= 36; }
+        if (relDire == ELE) { getStartPovY -= 60; getStartPovX -= 0; }
+        else if (relDire != ELE) { getStartPovY -= 0; getStartPovX -= 36; }
         else {} // Nothing
     }
     roll = (roll < ANGLE_90)? roll+ANGLE_270 : roll-ANGLE_90;
-    while(halfPovX > 0){
+    while(getStartPovX > 0){
         targetTri = targetTri->getFaceFromAngle(roll, RIGHTSIDE, &relDire);
         
-        if (relDire == ELE) { halfPovX -= 60; halfPovY -= 0; }
-        else if (relDire != ELE) { halfPovX -= 0; halfPovY -= 36; }
+        if (relDire == ELE) { getStartPovX -= 60; getStartPovY -= 0; }
+        else if (relDire != ELE) { getStartPovX -= 0; getStartPovY -= 36; }
         else {} // Nothing
     }
 
